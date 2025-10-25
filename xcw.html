@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>نظام إدارة الطلاب</title>
+  <style>
+    :root{
+      --bg1:#0f1724; --bg2:#0b1220; --card:#0f1724; --accent:#5b21b6; --muted:#9ca3af; --glass: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box;font-family:"Noto Kufi Arabic",'Segoe UI',Tahoma,sans-serif}
+    html,body{height:100%;margin:0;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:#eef2ff}
+    .container{max-width:1200px;margin:28px auto;padding:22px}
+    .card{background:var(--card);backdrop-filter:blur(6px);border-radius:14px;padding:18px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+    h1{margin:0;font-size:24px}
+    p.lead{margin:0;color:var(--muted)}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;transition:0.2s}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#7c3aed);color:white}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
+    .btn:hover{opacity:0.8}
+
+    .layout{display:grid;grid-template-columns:280px 1fr;gap:16px}
+    aside{padding:14px}
+    label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
+    select,input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit}
+    .sections-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .section-pill{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.03);cursor:pointer;transition:0.2s}
+    .section-pill.active{background:linear-gradient(90deg,var(--accent),#7c3aed);}
+
+    main{padding:14px}
+    .controls{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .students{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+    .student{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
+    .student .name{font-weight:700}
+    .notes{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+    .note{background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center}
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.7);display:flex;align-items:center;justify-content:center;z-index:50}
+    .modal{width:100%;max-width:720px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));padding:18px;border-radius:12px}
+
+    /* password screen */
+    .pw-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:40}
+    .pw-box{width:100%;max-width:420px;padding:20px;border-radius:12px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);}
+    .pw-box input{font-size:18px}
+
+    footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+    @media (max-width:880px){.layout{grid-template-columns:1fr;}.container{padding:12px}}
+
+    /* --- نوتيفاي فخم --- */
+    .notify {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: linear-gradient(90deg, #5b21b6, #7c3aed);
+      color: white;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+      transition: all 0.4s ease;
+    }
+    .notify.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .notify.error {
+      background: linear-gradient(90deg, #dc2626, #b91c1c);
+    }
+    .notify.success {
+      background: linear-gradient(90deg, #16a34a, #22c55e);
+    }
+  </style>
+</head>
+<body>
+  <div class="pw-screen" id="pwScreen">
+    <div class="pw-box card">
+      <h2 style="margin-top:0">قوة دانه ❤️</h2>
+      <form id="pwForm">
+        <input id="pwInput" type="password" placeholder="كلمة المرور" required />
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button class="btn primary">دخول</button>
+          <button type="button" id="pwClear" class="btn ghost">مسح</button>
+        </div>
+        <p style="margin-top:10px;color:var(--muted);font-size:13px"><strong></strong></p>
+      </form>
+    </div>
+  </div>
+
+  <div class="container" id="app" style="display:none">
+    <div class="card">
+      <header>
+        <div>
+          <h1>نظام إدارة الطلاب</h1>
+          <p class="lead"> </p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div class="btn ghost" id="userBadge">مرحباً</div>
+          <button class="btn ghost" id="logoutBtn">خروج</button>
+        </div>
+      </header>
+
+      <div class="layout">
+        <aside class="card">
+          <h3 style="margin-top:0">أضف / اختر صف</h3>
+          <label>اختر الصف</label>
+          <select id="classSelect"></select>
+
+          <label style="margin-top:8px">اختر القسم (1 - 15)</label>
+          <div class="sections-list" id="sectionsList"></div>
+
+          <div style="margin-top:12px">
+            <button class="btn primary" id="openAddStudent">إضافة طالب للقسم</button>
+          </div>
+        </aside>
+
+        <main class="card">
+          <div class="controls">
+            <div>
+              <h3 id="titleClass">الصف</h3>
+              <p class="lead" id="subtitle">عرض الطلاب والبحث والملاحظات</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="searchInput" placeholder="بحث عن اسم الطالب" />
+              <button class="btn primary" id="btnNewStudent">طالب جديد</button>
+            </div>
+          </div>
+
+          <div class="students" id="studentsGrid"></div>
+        </main>
+      </div>
+      <footer></footer>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="addStudentModal" style="display:none" class="modal-backdrop">
+    <div class="modal">
+      <h3>إضافة طالب</h3>
+      <input id="newStudentName" placeholder="اسم الطالب" />
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn ghost" id="cancelAdd">إلغاء</button>
+        <button class="btn primary" id="confirmAdd">إضافة</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="notesModal" style="display:none" class="modal-backdrop">
+    <div class="modal">
+      <h3>إضافة ملاحظة</h3>
+      <p style="color:var(--muted)">اختر ملاحظة جاهزة أو اكتب ملاحظة مخصصة</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" id="presetNotes"></div>
+      <textarea id="customNote" placeholder="اكتب ملاحظة مخصصة..."></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+        <button class="btn ghost" id="cancelNotes">إلغاء</button>
+        <button class="btn primary" id="saveNotes">حفظ الملاحظة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نوتيفاي -->
+  <div id="notify" class="notify"></div>
+
+  <script>
+    const PASSWORD = 'MS.dana1!!@#$';
+    const CLASSES = [
+      {id:'10',name:'الصف العاشر'},
+      {id:'11',name:'الصف الحادي عشر'},
+      {id:'12',name:'الصف الثاني عشر'}
+    ];
+    const PRESET_NOTES = ['النوم أثناء الحصة','عدم احترام المعلمة','الغش أثناء الاختبار','الكلام أثناء الحصة'];
+    const STORAGE_KEY = 'student_manager_html_v1';
+    let state = {authenticated:false,selectedClass:'10',selectedSection:1,data:{},noteTarget:null};
+
+    function $(id){return document.getElementById(id)}
+    function loadData(){try{const raw=localStorage.getItem(STORAGE_KEY);state.data=raw?JSON.parse(raw):{}}catch(e){state.data={}};CLASSES.forEach(c=>{if(!state.data[c.id])state.data[c.id]={};for(let s=1;s<=15;s++){if(!state.data[c.id][s])state.data[c.id][s]={students:[]}}})}
+    function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state.data))}
+    function renderClassSelect(){const sel=$('classSelect');sel.innerHTML='';CLASSES.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name;sel.appendChild(o)});sel.value=state.selectedClass}
+    function renderSections(){const c=$('sectionsList');c.innerHTML='';for(let i=1;i<=15;i++){const b=document.createElement('div');b.className='section-pill '+(i===state.selectedSection?'active':'');b.textContent=`${CLASSES.find(x=>x.id===state.selectedClass).name} : ${i}`;b.onclick=()=>{state.selectedSection=i;renderAll();};c.appendChild(b)}}
+    function renderTitle(){$('titleClass').textContent=`${CLASSES.find(x=>x.id===state.selectedClass).name} — القسم ${state.selectedSection}`}
+    function renderStudents(){const grid=$('studentsGrid');grid.innerHTML='';const list=(state.data[state.selectedClass][state.selectedSection].students||[]).filter(s=>{const q=$('searchInput').value.trim();return!q||s.name.includes(q)});if(list.length===0){grid.innerHTML='<div style="padding:18px;border-radius:8px;background:rgba(255,255,255,0.02);color:var(--muted)">لا يوجد طلاب.</div>';return}list.forEach(s=>{const c=document.createElement('div');c.className='student';c.innerHTML=`<div class="name">${s.name}</div><div class="notes" id="notes-${s.id}"></div><div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end"><button class="btn ghost" data-edit="${s.id}">إضافة ملاحظة</button><button class="btn ghost" data-delete="${s.id}">حذف طالب</button></div>`;grid.appendChild(c);const nC=c.querySelector(`#notes-${s.id}`);(s.notes||[]).forEach((n,idx)=>{const el=document.createElement('div');el.className='note';el.innerHTML=`<div>${n.text}</div><div style="font-size:11px;color:var(--muted)">${new Date(n.date).toLocaleString('ar-EG')}</div>`;nC.appendChild(el)})});grid.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openNotesModal(b.getAttribute('data-edit')));grid.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('هل تريد حذف الطالب؟')){deleteStudent(b.getAttribute('data-delete'));notify('🗑️ تم حذف الطالب!','error');}})}
+    function renderAll(){renderClassSelect();renderSections();renderTitle();renderStudents()}
+    function addStudent(name){if(!name.trim())return notify('⚠️ اكتب اسم الطالب','error');const id='s'+Date.now();state.data[state.selectedClass][state.selectedSection].students.push({id,name,notes:[]});saveData();renderAll();notify('✅ تم إضافة الطالب بنجاح!','success');}
+    function deleteStudent(id){const arr=state.data[state.selectedClass][state.selectedSection].students;state.data[state.selectedClass][state.selectedSection].students=arr.filter(x=>x.id!==id);saveData();renderAll();}
+    function openNotesModal(sid){state.noteTarget={cid:state.selectedClass,sec:state.selectedSection,sid};$('notesModal').style.display='flex';renderPresetNotes()}
+    function renderPresetNotes(){const c=$('presetNotes');c.innerHTML='';PRESET_NOTES.forEach(p=>{const b=document.createElement('button');b.className='btn ghost';b.textContent=p;b.onclick=()=>b.classList.toggle('active');c.appendChild(b)})}
+    function saveNotes(){const selected=Array.from($('presetNotes').querySelectorAll('button.active')).map(b=>b.textContent);const custom=$('customNote').value.trim();if(selected.length===0&&!custom)return notify('⚠️ اختر ملاحظة','error');const st=state.data[state.noteTarget.cid][state.noteTarget.sec].students.find(s=>s.id===state.noteTarget.sid);const toAdd=[...selected];if(custom)toAdd.push(custom);toAdd.forEach(t=>st.notes.push({text:t,date:new Date().toISOString()}));saveData();$('notesModal').style.display='none';$('customNote').value='';renderAll();notify('💬 تم حفظ الملاحظة!','success');}
+    
+    function notify(msg, type='success'){const n=$('notify');n.textContent=msg;n.className=`notify ${type}`;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),3000);}
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      loadData();
+      $('pwForm').onsubmit=e=>{
+        e.preventDefault();
+        if($('pwInput').value===PASSWORD){
+          $('pwScreen').style.display='none';
+          $('app').style.display='block';
+          renderAll();
+          notify('✅ تم تسجيل الدخول بنجاح!','success');
+        } else notify('❌ كلمة المرور خاطئة!','error');
+      };
+      $('pwClear').onclick=()=>$('pwInput').value='';
+      $('classSelect').onchange=e=>{state.selectedClass=e.target.value;state.selectedSection=1;renderAll()};
+      $('searchInput').oninput=()=>renderStudents();
+      $('openAddStudent').onclick=$('btnNewStudent').onclick=()=>$('addStudentModal').style.display='flex';
+      $('cancelAdd').onclick=()=>$('addStudentModal').style.display='none';
+      $('confirmAdd').onclick=()=>{addStudent($('newStudentName').value);$('newStudentName').value='';$('addStudentModal').style.display='none';};
+      $('logoutBtn').onclick=()=>{if(confirm('تسجيل الخروج؟'))location.reload()};
+      $('cancelNotes').onclick=()=>$('notesModal').style.display='none';
+      $('saveNotes').onclick=saveNotes;
+      renderAll();
+    });
+  </script>
+</body>
+</html>
